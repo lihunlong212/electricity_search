@@ -35,9 +35,9 @@ def generate_launch_description():
         )
     )
 
-    route_test_launch = IncludeLaunchDescription(
+    route_target_publisher_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(activity_control_pkg_share, 'launch', 'route_test.launch.py')
+            os.path.join(activity_control_pkg_share, 'launch', 'route_target_publisher.launch.py')
         )
     )
 
@@ -62,6 +62,6 @@ def generate_launch_description():
         fly_carto_launch,
         uart_to_stm32_launch,
         position_pid_controller_launch,
-        route_test_launch,
+        route_target_publisher_launch,
         drone_camera_node,
     ])

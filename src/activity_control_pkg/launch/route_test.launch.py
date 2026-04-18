@@ -15,8 +15,8 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package="activity_control_pkg",
-            executable="route_test_node",
-            name="route_test_node",
+            executable="route_target_publisher_node",
+            name="route_target_publisher",
             output="screen",
             parameters=[
                 {

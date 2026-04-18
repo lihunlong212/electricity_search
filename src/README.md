@@ -19,11 +19,10 @@ source install/setup.bash
 - `bluesea2` publishes `/scan`
 - `activity_control_pkg` publishes `/target_position` and `/active_controller`
 - `drone_camera_pkg` publishes `/fine_data`, `/apriltag_code`, and handles `/photo_capture_request`
-- An external ROS 2 node publishes `/route_choice` to select which waypoint group should run
-- `activity_control_pkg` changes selected inspection waypoints into a photo flow: descend to the configured photo height, dwell, request one photo, then continue
+- `activity_control_pkg` loads the built-in mission immediately at startup, then changes inspection waypoints into a photo flow: descend to the configured photo height, dwell, request one photo, then continue
 - `pid_control_pkg` subscribes to `/target_position`, `/height`, `/visual_takeover_active`, and `/fine_data`, then publishes `/target_velocity`
 - `drone_camera_pkg` saves the captured image into `src/photo` and replies on `/photo_capture_result`
-- `uart_to_stm32` listens to `/route_choice` and forwards `/target_velocity` to the flight controller only while the selected route task is active
+- `uart_to_stm32` forwards `/target_velocity` to the flight controller as soon as the mission starts and stops forwarding after `/mission_complete`
 - `activity_control_pkg` publishes `/mission_complete` after all targets complete
 - `uart_to_stm32` sends `/mission_complete` as serial frame `0x66` with payload `0x06`
 - `uart_to_stm32` also publishes `/height`, `/is_st_ready`, and `/mission_step`
@@ -34,12 +33,15 @@ source install/setup.bash
 
 Maintains the waypoint queue, checks whether the current target is reached, and treats `Target.is_takeover == true` as an inspection-photo waypoint.
 
-Route selection behavior:
+Built-in mission behavior:
 
-- The node starts in standby and does not publish any waypoint until `/route_choice` is received
-- `/route_choice` uses `std_msgs/msg/UInt8`
-- `1` starts the first built-in waypoint group and `2` starts the second built-in waypoint group
-- After a valid route starts, later `/route_choice` messages are ignored for the rest of that run
+- The node loads one built-in waypoint group at startup and publishes the first waypoint immediately
+- The default mission currently contains four targets:
+  - `(0, 0, 130, 0, false)`
+  - `(125, 100, 130, 0, true)`
+  - `(0, 0, 130, 0, false)`
+  - `(0, 0, 0, 0, false)`
+- `Target.is_takeover == true` still marks the inspection-photo waypoint
 
 Inspection photo behavior:
 
@@ -54,7 +56,6 @@ Key files:
 - `activity_control_pkg/include/activity_control_pkg/route_target_publisher.hpp`
 - `activity_control_pkg/src/route_target_publisher.cpp`
 - `activity_control_pkg/src/route_target_publisher_main.cpp`
-- `activity_control_pkg/src/route_test_node.cpp`
 
 Inspection photo topics:
 
@@ -111,12 +112,11 @@ Reusable serial communication library used by `uart_to_stm32`.
 
 Bridges ROS topics and the STM32/flight-controller serial protocol.
 
-Remote-control gating:
+Mission gating:
 
-- `/route_choice` is published by an external ROS 2 node using `std_msgs/msg/UInt8`
-- valid route IDs currently include `1` and `2`
-- after a valid `/route_choice`, target velocity forwarding stays enabled only for the active mission
-- before route start and after mission completion, `/target_velocity` messages are ignored and not sent to STM32
+- `/target_velocity` forwarding is enabled as soon as the node starts
+- after `/mission_complete`, `/target_velocity` messages are ignored and not sent to STM32
+- starting a new mission requires restarting the node or relaunching the stack
 
 Key files:
 

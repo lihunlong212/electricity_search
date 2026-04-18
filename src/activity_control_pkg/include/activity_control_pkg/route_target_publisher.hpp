@@ -1,10 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
@@ -66,6 +64,7 @@ private:
   void publishVisualTakeoverState(bool active);
   std::string buildPhotoFilename() const;
   bool isPhotoCapturePhase() const;
+  void loadDefaultTargets();
 
   static double meterToCm(double value_m);
   static double radToDeg(double value_rad);
@@ -107,26 +106,6 @@ private:
   bool photo_capture_result_ready_;
   bool photo_capture_result_success_;
   std::string pending_photo_filename_;
-};
-
-class RouteTestNode : public rclcpp::Node
-{
-public:
-  explicit RouteTestNode(
-    const std::shared_ptr<RouteTargetPublisherNode> & route_node,
-    const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
-
-private:
-  using RouteId = std::uint8_t;
-
-  void routeChoiceCallback(const std_msgs::msg::UInt8::SharedPtr msg);
-  std::unordered_map<RouteId, std::vector<Target>> buildRoutes() const;
-  void loadRoute(RouteId route_id, const std::vector<Target> & route);
-
-  std::shared_ptr<RouteTargetPublisherNode> route_node_;
-  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr route_choice_sub_;
-  std::unordered_map<RouteId, std::vector<Target>> routes_;
-  bool route_locked_;
 };
 
 }  // namespace activity_control_pkg
